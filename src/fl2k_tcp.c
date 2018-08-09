@@ -39,7 +39,7 @@
 #define sleep_ms(ms)	usleep(ms*1000)
 #else
 #include <windows.h>
-#include <winsock2.h>
+#include <winsock.h>
 #include "getopt/getopt.h"
 #define sleep_ms(ms)	Sleep(ms)
 #endif
