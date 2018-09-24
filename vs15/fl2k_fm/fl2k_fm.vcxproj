@@ -60,8 +60,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\..\pthread\lib\x64;..\..\..\libusb\x64\Debug\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libusb-1.0.lib;pthreadVC2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\x64\Debug;..\..\..\pthread\lib\x64;..\..\..\libusb\x64\Debug\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>osmo-fl2k.lib;libusb-1.0.lib;pthreadVC2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>LIBCMTD</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -81,8 +81,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libusb-1.0.lib;pthreadVC2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\..\pthread\lib\x64;..\..\..\libusb\x64\Release\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>osmo-fl2k.lib;libusb-1.0.lib;pthreadVC2.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\x64\Release;..\..\..\pthread\lib\x64;..\..\..\libusb\x64\Release\lib</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBCMT</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -94,7 +94,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\fl2k_fm.c" />
     <ClCompile Include="..\..\src\getopt\getopt.c" />
-    <ClCompile Include="..\..\src\libosmo-fl2k.c" />
     <ClCompile Include="..\..\src\rds_mod.c" />
     <ClCompile Include="..\..\src\rds_waveforms.c" />
     <ClCompile Include="stdafx.cpp" />
