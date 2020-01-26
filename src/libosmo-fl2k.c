@@ -2,7 +2,7 @@
  * osmo-fl2k, turns FL2000-based USB 3.0 to VGA adapters into
  * low cost DACs
  *
- * Copyright (C) 2016-2018 by Steve Markgraf <steve@steve-m.de>
+ * Copyright (C) 2016-2020 by Steve Markgraf <steve@steve-m.de>
  *
  * SPDX-License-Identifier: GPL-2.0+
  *
@@ -250,9 +250,9 @@ int fl2k_set_sample_rate(fl2k_dev_t *dev, uint32_t target_freq)
 				error = sample_clock - (double)target_freq;
 
 				/* Keep closest match */
-				if (fabsf(error) < last_error) {
+				if (fabs(error) < last_error) {
 					result_reg = reg;
-					last_error = fabsf(error);
+					last_error = fabs(error);
 				}
 			}
 		}
@@ -262,7 +262,7 @@ int fl2k_set_sample_rate(fl2k_dev_t *dev, uint32_t target_freq)
 	error = sample_clock - (double)target_freq;
 	dev->rate = sample_clock;
 
-	if (fabsf(error) > 1)
+	if (fabs(error) > 1)
 		fprintf(stderr, "Requested sample rate %d not possible, using"
 		                " %f, error is %f\n", target_freq, sample_clock, error); 
 
@@ -444,10 +444,10 @@ int fl2k_open(fl2k_dev_t **out_dev, uint32_t index)
 		fprintf(stderr, "usb_claim_interface 0 error %d\n", r);
 		goto err;
 	}
-	r = libusb_claim_interface(dev->devh, 1);
 
+	r = libusb_set_interface_alt_setting(dev->devh, 0, 1);
 	if (r < 0) {
-		fprintf(stderr, "usb_claim_interface 1 error %d\n", r);
+		fprintf(stderr, "Error enabling IF 0 altsetting 1: %d\n", r);
 		goto err;
 	}
 
@@ -529,6 +529,7 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 	fl2k_xfer_info_t *next_xfer_info;
 	fl2k_dev_t *dev = (fl2k_dev_t *)xfer_info->dev;
 	struct libusb_transfer *next_xfer = NULL;
+	int r = 0;
 
 	if (LIBUSB_TRANSFER_COMPLETED == xfer->status) {
 		/* resubmit transfer */
@@ -541,8 +542,7 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 
 				/* Submit next filled transfer */
 				next_xfer_info->state = BUF_SUBMITTED;
-				libusb_submit_transfer(next_xfer);
-
+				r = libusb_submit_transfer(next_xfer);
 				xfer_info->state = BUF_EMPTY;
 				pthread_cond_signal(&dev->buf_cond);
 			} else {
@@ -551,17 +551,21 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 				 * stops to output data and hangs
 				 * (happens only in the hacked 'gapless'
 				 * mode without HSYNC and VSYNC)  */
-				libusb_submit_transfer(xfer);
+				r = libusb_submit_transfer(xfer);
 				pthread_cond_signal(&dev->buf_cond);
 				dev->underflow_cnt++;
 			}
 		}
-	} else if (LIBUSB_TRANSFER_CANCELLED != xfer->status) {
+	}
+
+	if (((LIBUSB_TRANSFER_CANCELLED != xfer->status) &&
+	     (LIBUSB_TRANSFER_COMPLETED != xfer->status)) ||
+	     (r == LIBUSB_ERROR_NO_DEVICE)) {
 			dev->dev_lost = 1;
 			fl2k_stop_tx(dev);
 			pthread_cond_signal(&dev->buf_cond);
-			fprintf(stderr, "cb transfer status: %d, "
-				"canceling...\n", xfer->status);
+			fprintf(stderr, "cb transfer status: %d, submit "
+				"transfer %d, canceling...\n", xfer->status, r);
 	}
 }
 
@@ -591,11 +595,26 @@ static int fl2k_alloc_submit_transfers(fl2k_dev_t *dev)
 	for (i = 0; i < dev->xfer_buf_num; ++i) {
 		dev->xfer_buf[i] = libusb_dev_mem_alloc(dev->devh, dev->xfer_buf_len);
 
-		if (!dev->xfer_buf[i]) {
+		if (dev->xfer_buf[i]) {
+			/* Check if Kernel usbfs mmap() bug is present: if the
+			 * mapping is correct, the buffers point to memory that
+			 * was memset to 0 by the Kernel, otherwise, they point
+			 * to random memory. We check if the buffers are zeroed
+			 * and otherwise fall back to buffers in userspace.
+			 */
+			if (dev->xfer_buf[i][0] || memcmp(dev->xfer_buf[i],
+							  dev->xfer_buf[i] + 1,
+							  dev->xfer_buf_len - 1)) {
+				fprintf(stderr, "Detected Kernel usbfs mmap() "
+						"bug, falling back to buffers "
+						"in userspace\n");
+				dev->use_zerocopy = 0;
+				break;
+			}
+		} else {
 			fprintf(stderr, "Failed to allocate zero-copy "
 					"buffer for transfer %d\nFalling "
 					"back to buffers in userspace\n", i);
-
 			dev->use_zerocopy = 0;
 			break;
 		}
@@ -762,6 +781,8 @@ static void *fl2k_usb_worker(void *arg)
 		}
 	}
 
+	/* wait for sample worker thread to finish before freeing buffers */
+	pthread_join(dev->sample_worker_thread, NULL);  
 	_fl2k_free_async_buffers(dev);
 	dev->async_status = next_status;
 
@@ -902,7 +923,6 @@ static void *fl2k_sample_worker(void *arg)
 	if (dev->dev_lost && dev->cb) {
 		data_info.device_error = 1;
 		dev->cb(&data_info);
-		fl2k_stop_tx(dev);
 	}
 
 	pthread_exit(NULL);
