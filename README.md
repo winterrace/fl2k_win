@@ -1,3 +1,7 @@
+Fork of https://github.com/winterrace/fl2k_win to experiment use of fl2k to generate white noise with uniform amplitude distribution. 
+The main code is in \src\fl2k_noise.c file
+I'm compiling in VS19 and I did not yet edited cmake files...
+
 fl2k_win
 ===========
 This is a fork of http://git.osmocom.org/osmo-fl2k which compiles for Win64 under Microsoft Visual Studio (verified with VS 2015). See release section for pre-compiled binaries.
