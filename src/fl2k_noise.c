@@ -84,10 +84,6 @@ void fl2k_callback(fl2k_data_info_t *data_info)
 		do_exit = 1;
 		return;
 	}
-	int g, b;
-	g = (r + 1) % 3;
-	b = (r + 2) % 3;
-
 	data_info->sampletype_signed = 1;
 	data_info->r_buf = txbuf + r * FL2K_BUF_LEN;
 	data_info->g_buf = txbuf + r * FL2K_BUF_LEN;
@@ -102,9 +98,9 @@ uint64_t lfbsr(uint64_t* i, uint64_t* fb)
 	else { *i = (*i >> 1); }
 	return *i;
 }
-
 uint64_t r0 =  0x1234567890123456ULL;
-uint64_t fb0 = 0x800000000000057CULL;
+uint64_t fb0 = 0x800000000000057CULL;		// 64 bit max lem see https://users.ece.cmu.edu/~koopman/lfsr/
+
 
 int main(int argc, char **argv)
 {
